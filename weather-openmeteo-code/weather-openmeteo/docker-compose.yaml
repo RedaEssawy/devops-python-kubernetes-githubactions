@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    container_name: weather-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: you-can-do
+      POSTGRES_DB: weatherdb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - weather-db-data:/var/lib/postgresql/data
+    networks:
+      - weather-network 
+
+  frontend:
+    build: ./frontend
+    container_name: weather-frontend
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "80:80"
+    networks:
+      - weather-network 
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy  
+    networks:
+      - weather-network  
+    environment:  
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=you-can-do
+      - DB_NAME=weatherdb
+      - DB_PORT=5432
+
+volumes:
+  weather-db-data:
+
+networks:  
+  weather-network:
+    driver: bridge
